@@ -3,7 +3,8 @@
 
 # Log file
 *.log
-*.DS_Store
+.DS_Store
+.DS_Store?
 
 # BlueJ files
 *.ctxt
@@ -19,3 +20,4 @@ data/reviews_Office_Products.json
 secure-connect-hw2.zip
 data.zip
 data/
+HW2-token.json
