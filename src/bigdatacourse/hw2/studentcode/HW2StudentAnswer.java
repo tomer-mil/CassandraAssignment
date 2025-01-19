@@ -7,23 +7,96 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 
 import bigdatacourse.hw2.HW2API;
 
-public class HW2StudentAnswer implements HW2API{
+public class HW2StudentAnswer implements HW2API {
 	
 	// general consts
-	public static final String		NOT_AVAILABLE_VALUE 	=		"na";
+	private static final String		NOT_AVAILABLE_VALUE 	=		"na";
+	private static final String		TABLE_ITEM_VIEW			=		"item_view";
+	private static final String		TABLE_USER_REVIEWS_VIEW	=	"user_reviews_view";
+	private static final String		TABLE_ITEM_REVIEWS_VIEW	=	"item_reviews_view";
 
 	// CQL stuff
-	//TODO: add here create table and query designs 
+	//TODO: add here create table and query designs
+	private static final String 		CQL_ITEM_VIEW_CREATE_TABLE =
+			"CREATE TABLE " + TABLE_ITEM_VIEW 		+
+					"(" 									+
+					"asin text PRIMARY KEY," 			+
+					"title text," 						+
+					"imageURL text," 					+
+					"categories set<text>," 			+
+					"description text" 					+
+					"PRIMARY KEY ((asin), categories)"	+
+					")";
+	private static final String 		CQL_USER_REVIEWS_VIEW_CREATE_TABLE =
+			"CREATE TABLE " + TABLE_USER_REVIEWS_VIEW 	+
+					"(" 										+
+					"reviewerID text," 						+
+					"time timestamp," 						+
+					"asin text," 							+
+					"reviewerID text," 						+
+					"reviewName text," 						+
+					"rating int," 							+
+					"summary text," 						+
+					"reviewText text," 						+
+					"PRIMARY KEY ((reviewerID), time DESC, asin DESC)"	+
+					")";
+	private static final String 		CQL_ITEM_REVIEWS_VIEW_CREATE_TABLE =
+			"CREATE TABLE " + TABLE_ITEM_REVIEWS_VIEW 	+
+					"(" 										+
+					"asin text," 							+
+					"time timestamp," 						+
+					"reviewerID text," 						+
+					"reviewerName text," 					+
+					"rating int," 							+
+					"summary text," 						+
+					"reviewText text," 						+
+					"PRIMARY KEY ((asin), time DESC, reviewerID DESC)"	+
+					")";
+		// Item queries
+	private static final String		CQL_ITEM_VIEW_INSERT =
+			"INSERT INTO " + TABLE_ITEM_VIEW + "(asin, title, imageURL, categories, description) VALUES(?, ?, ?, ?, ?)";
+	private static final String		CQL_ITEM_VIEW_SELECT =
+			"SELECT * FROM " + TABLE_ITEM_VIEW + " WHERE asin = ?";
+
+		// User reviews queries
+	private static final String		CQL_USER_REVIEWS_VIEW_INSERT =
+			"INSERT INTO " + TABLE_USER_REVIEWS_VIEW + "(reviewerID, time, asin, reviewerID, reviewName, rating, summary, reviewText) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+	private static final String		CQL_USER_REVIEWS_VIEW_SELECT =
+			"SELECT * FROM " + TABLE_USER_REVIEWS_VIEW + " WHERE reviewerID = ?";
+
+		// Item reviews queries
+	private static final String		CQL_ITEM_REVIEWS_VIEW_INSERT =
+			"INSERT INTO " + TABLE_ITEM_REVIEWS_VIEW + "(asin, time, reviewerID, reviewerName, rating, summary, reviewText) VALUES(?, ?, ?, ?, ?, ?, ?)";
+	private static final String		CQL_ITEM_REVIEWS_VIEW_SELECT =
+			"SELECT * FROM " + TABLE_ITEM_REVIEWS_VIEW + " WHERE asin = ?";
+
+
 	
 	// cassandra session
 	private CqlSession session;
 	
 	// prepared statements
 	//TODO: add here prepared statements variables
-	
+
+	// Item prepared statements
+	private PreparedStatement insertItemView;
+	private PreparedStatement selectItemView;
+
+	// User reviews prepared statements
+	private PreparedStatement insertUserReviewsView;
+	private PreparedStatement selectUserReviewsView;
+
+	// Item reviews prepared statements
+	private PreparedStatement insertItemReviewsView;
+	private PreparedStatement selectItemReviewsView;
 	
 	@Override
 	public void connect(String pathAstraDBBundleFile, String username, String password, String keyspace) {
