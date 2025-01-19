@@ -8,6 +8,7 @@
 
 # BlueJ files
 *.ctxt
+*.iml
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
@@ -20,4 +21,8 @@ data/reviews_Office_Products.json
 secure-connect-hw2.zip
 data.zip
 data/
+astradb/
+.idea/
+.idea/json.xml
+.idea/workspace.xml
 HW2-token.json

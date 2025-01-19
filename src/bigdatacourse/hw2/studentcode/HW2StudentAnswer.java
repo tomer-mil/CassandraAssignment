@@ -26,40 +26,42 @@ public class HW2StudentAnswer implements HW2API {
 	// CQL stuff
 	//TODO: add here create table and query designs
 	private static final String 		CQL_ITEM_VIEW_CREATE_TABLE =
-			"CREATE TABLE " + TABLE_ITEM_VIEW 		+
-					"(" 									+
-					"asin text PRIMARY KEY," 			+
-					"title text," 						+
-					"imageURL text," 					+
-					"categories set<text>," 			+
-					"description text" 					+
-					"PRIMARY KEY ((asin), categories)"	+
-					")";
+			"CREATE TABLE " + TABLE_ITEM_VIEW 							+
+				"("		 												+
+					"asin text," 										+
+					"title text," 										+
+					"imageURL text," 									+
+					"categories set<text>," 							+
+					"description text,"									+
+					"PRIMARY KEY (asin)"								+
+				")";
 	private static final String 		CQL_USER_REVIEWS_VIEW_CREATE_TABLE =
-			"CREATE TABLE " + TABLE_USER_REVIEWS_VIEW 	+
-					"(" 										+
-					"reviewerID text," 						+
-					"time timestamp," 						+
-					"asin text," 							+
-					"reviewerID text," 						+
-					"reviewName text," 						+
-					"rating int," 							+
-					"summary text," 						+
-					"reviewText text," 						+
-					"PRIMARY KEY ((reviewerID), time DESC, asin DESC)"	+
-					")";
+			"CREATE TABLE " + TABLE_USER_REVIEWS_VIEW 					+
+				"("		 												+
+					"reviewerID text," 									+
+					"time timestamp," 									+
+					"asin text," 										+
+					"reviewName text," 									+
+					"rating int," 										+
+					"summary text," 									+
+					"reviewText text," 									+
+					"PRIMARY KEY ((reviewerID), time, asin)"			+
+				")"														+
+			"WITH CLUSTERING ORDER BY (time DESC, asin DESC)";
 	private static final String 		CQL_ITEM_REVIEWS_VIEW_CREATE_TABLE =
-			"CREATE TABLE " + TABLE_ITEM_REVIEWS_VIEW 	+
-					"(" 										+
-					"asin text," 							+
-					"time timestamp," 						+
-					"reviewerID text," 						+
-					"reviewerName text," 					+
-					"rating int," 							+
-					"summary text," 						+
-					"reviewText text," 						+
-					"PRIMARY KEY ((asin), time DESC, reviewerID DESC)"	+
-					")";
+			"CREATE TABLE " + TABLE_ITEM_REVIEWS_VIEW 					+
+				"("		 												+
+					"asin text," 										+
+					"time timestamp," 									+
+					"reviewerID text," 									+
+					"reviewerName text," 								+
+					"rating int," 										+
+					"summary text," 									+
+					"reviewText text," 									+
+					"PRIMARY KEY ((asin), time, reviewerID)"	+
+				")"														+
+			"WITH CLUSTERING ORDER BY (time DESC, reviewerID DESC)";
+
 		// Item queries
 	private static final String		CQL_ITEM_VIEW_INSERT =
 			"INSERT INTO " + TABLE_ITEM_VIEW + "(asin, title, imageURL, categories, description) VALUES(?, ?, ?, ?, ?)";
@@ -68,7 +70,7 @@ public class HW2StudentAnswer implements HW2API {
 
 		// User reviews queries
 	private static final String		CQL_USER_REVIEWS_VIEW_INSERT =
-			"INSERT INTO " + TABLE_USER_REVIEWS_VIEW + "(reviewerID, time, asin, reviewerID, reviewName, rating, summary, reviewText) VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+			"INSERT INTO " + TABLE_USER_REVIEWS_VIEW + "(reviewerID, time, asin, reviewName, rating, summary, reviewText) VALUES(?, ?, ?, ?, ?, ?, ?)";
 	private static final String		CQL_USER_REVIEWS_VIEW_SELECT =
 			"SELECT * FROM " + TABLE_USER_REVIEWS_VIEW + " WHERE reviewerID = ?";
 
@@ -163,6 +165,7 @@ public class HW2StudentAnswer implements HW2API {
 	@Override
 	public void loadItems(String pathItemsFile) throws Exception {
 		//TODO: implement this function
+
 		System.out.println("TODO: implement this function...");
 	}
 
