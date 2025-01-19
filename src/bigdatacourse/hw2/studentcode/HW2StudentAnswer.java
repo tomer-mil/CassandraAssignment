@@ -134,13 +134,30 @@ public class HW2StudentAnswer implements HW2API {
 	@Override
 	public void createTables() {
 		//TODO: implement this function
-		System.out.println("TODO: implement this function...");
+
+		session.execute(CQL_ITEM_VIEW_CREATE_TABLE);
+		session.execute(CQL_USER_REVIEWS_VIEW_CREATE_TABLE);
+		session.execute(CQL_ITEM_REVIEWS_VIEW_CREATE_TABLE);
+
+		System.out.println("TODO: implement this function...\nDONE!");
 	}
 
 	@Override
 	public void initialize() {
 		//TODO: implement this function
-		System.out.println("TODO: implement this function...");
+
+		// Item prepared statements
+		this.insertItemView = session.prepare(CQL_ITEM_VIEW_INSERT);
+		this.selectItemView = session.prepare(CQL_ITEM_VIEW_SELECT);
+
+		// User reviews prepared statements
+		this.insertUserReviewsView = session.prepare(CQL_USER_REVIEWS_VIEW_INSERT);
+		this.selectUserReviewsView = session.prepare(CQL_USER_REVIEWS_VIEW_SELECT);
+
+		// Item reviews prepared statements
+		this.insertItemReviewsView = session.prepare(CQL_ITEM_REVIEWS_VIEW_INSERT);
+		this.selectItemReviewsView = session.prepare(CQL_ITEM_REVIEWS_VIEW_SELECT);
+		System.out.println("TODO: implement this function...\nDONE!");
 	}
 
 	@Override
