@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import bigdatacourse.hw2.HW2API;
@@ -331,5 +332,47 @@ public class HW2StudentAnswer implements HW2API {
 		} catch (FileNotFoundException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private JSONObject getTableJSONObject(String stringJSON, String tableName) {
+		JSONObject rawJSON = new JSONObject(stringJSON);
+		JSONObject parsedJSON = new JSONObject();
+		if (tableName.equals(TABLE_ITEM_VIEW)) {
+//			String asin = rawJSON.get();
+//			parsedJSON.put("asin", rawJSON.get("asin"));
+		}
+
+		return parsedJSON;
+	}
+
+	private JSONObject parseRawJSON(String stringJSON) {
+		JSONObject rawJSON = new JSONObject(stringJSON);
+		JSONObject parsedGenericJSON = new JSONObject();
+		// Create an array with all the below keys and name it keysArray
+		String[] keysArray = {"asin", "title", "imURL", "categories", "description", "reviewerID", "time", "reviewerName", "rating", "summary", "reviewText"};
+
+		for (String key : keysArray) {
+			if (rawJSON.get(key) != null) {
+				switch (key) {
+					case "categories":
+						JSONArray categoriesArray = new JSONArray(rawJSON.getJSONArray("categories")).getJSONArray(0);
+						System.out.println("categoriesArray:\n" + categoriesArray.toString(4));
+						parsedGenericJSON.put("categories", categoriesArray);
+						break;
+					case "imURL":
+						parsedGenericJSON.put("imageURL", rawJSON.get(key));
+						break;
+					default:
+						parsedGenericJSON.put(key, rawJSON.get(key));
+				}
+			} else {
+				if (key.equals("imURL")) {
+					parsedGenericJSON.put("imageURL", NOT_AVAILABLE_VALUE);
+				} else {
+					parsedGenericJSON.put(key, NOT_AVAILABLE_VALUE);
+				}
+			}
+		}
+		return parsedGenericJSON;
 	}
 }
