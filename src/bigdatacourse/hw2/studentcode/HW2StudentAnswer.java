@@ -1,17 +1,21 @@
 package bigdatacourse.hw2.studentcode;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
+
+import org.json.JSONObject;
 
 import bigdatacourse.hw2.HW2API;
 
@@ -22,6 +26,7 @@ public class HW2StudentAnswer implements HW2API {
 	private static final String		TABLE_ITEM_VIEW			=		"item_view";
 	private static final String		TABLE_USER_REVIEWS_VIEW	=	"user_reviews_view";
 	private static final String		TABLE_ITEM_REVIEWS_VIEW	=	"item_reviews_view";
+	private static final String 	TEST_JSON_FILES_PATH 	=		"data/test_data/";
 
 	// CQL stuff
 	//TODO: add here create table and query designs
@@ -165,6 +170,22 @@ public class HW2StudentAnswer implements HW2API {
 	@Override
 	public void loadItems(String pathItemsFile) throws Exception {
 		//TODO: implement this function
+		BufferedReader br = this.getBufferedReader(pathItemsFile);
+		String line = br.readLine();
+
+		int maxThreads = 250;
+		ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
+
+		while (line != null) {
+			executor.execute(new Runnable() {
+				@Override
+				public void run() {
+
+				}
+			});
+		}
+
+
 
 		System.out.println("TODO: implement this function...");
 	}
@@ -304,4 +325,11 @@ public class HW2StudentAnswer implements HW2API {
 		return reviewDesc;
 	}
 
+	private BufferedReader getBufferedReader(String path) throws Exception {
+		try {
+			return new BufferedReader(new FileReader(path));
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

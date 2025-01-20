@@ -3,8 +3,8 @@ package bigdatacourse.hw2;
 import java.io.File;
 import java.io.FileReader;
 import java.util.Scanner;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+import JSONObject;
+import JSONTokener;
 import bigdatacourse.hw2.studentcode.HW2StudentAnswer;
 
 
