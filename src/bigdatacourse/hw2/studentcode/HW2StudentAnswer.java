@@ -23,9 +23,10 @@ public class HW2StudentAnswer implements HW2API {
 	// general consts
 	private static final String		NOT_AVAILABLE_VALUE 	=		"na";
 	private static final String		TABLE_ITEM_VIEW			=		"item_view";
-	private static final String		TABLE_USER_REVIEWS_VIEW	=	"user_reviews_view";
-	private static final String		TABLE_ITEM_REVIEWS_VIEW	=	"item_reviews_view";
+	private static final String		TABLE_USER_REVIEWS_VIEW	=		"user_reviews_view";
+	private static final String		TABLE_ITEM_REVIEWS_VIEW	=		"item_reviews_view";
 	private static final String 	TEST_JSON_FILES_PATH 	=		"data/test_data/";
+	private static final int	 	MAX_THREADS				=		250;
 
 	// CQL stuff
 	//TODO: add here create table and query designs
@@ -168,18 +169,17 @@ public class HW2StudentAnswer implements HW2API {
 
 	@Override
 	public void loadItems(String pathItemsFile) throws Exception {
-		BufferedReader br = this.getBufferedReader(pathItemsFile);
+		BufferedReader br = getBufferedReader(pathItemsFile);
 		String line;
 
-		int maxThreads = 250;
-		ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
+		ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS);
 
 		while ((line = br.readLine()) != null) {
 			final String currentLine = line;
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
-					JSONObject itemJSON = getTableJSONObject(currentLine, TABLE_ITEM_VIEW);
+					JSONObject itemJSON = getTableJSONObject(currentLine, true);
 
 					JSONArray categoriesArray = itemJSON.getJSONArray("categories");
 					Set<String> categories = new HashSet<>();
@@ -205,6 +205,41 @@ public class HW2StudentAnswer implements HW2API {
 	@Override
 	public void loadReviews(String pathReviewsFile) throws Exception {
 		//TODO: implement this function
+		BufferedReader br = getBufferedReader(pathReviewsFile);
+		String line;
+
+		ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS);
+		while ((line = br.readLine()) != null) {
+			final String currentLine = line;
+			executor.execute(new Runnable() {
+				@Override
+				public void run() {
+					JSONObject reviewItemJSON = getTableJSONObject(currentLine, false);
+
+					insertItemReviewsView(
+							reviewItemJSON.getString("asin"),
+							Instant.ofEpochSecond(reviewItemJSON.getLong("time")),
+							reviewItemJSON.getString("reviewerID"),
+							reviewItemJSON.getString("reviewerName"),
+							reviewItemJSON.getInt("rating"),
+							reviewItemJSON.getString("summary"),
+							reviewItemJSON.getString("reviewText")
+					);
+					insertUserReviewsView(
+							reviewItemJSON.getString("reviewerID"),
+							Instant.ofEpochSecond(reviewItemJSON.getLong("time")),
+							reviewItemJSON.getString("asin"),
+							reviewItemJSON.getString("reviewerName"),
+							reviewItemJSON.getInt("rating"),
+							reviewItemJSON.getString("summary"),
+							reviewItemJSON.getString("reviewText")
+					);
+				}
+
+			});
+		}
+		executor.shutdown();
+		br.close();
 		System.out.println("TODO: implement this function...");
 	}
 
@@ -345,69 +380,88 @@ public class HW2StudentAnswer implements HW2API {
 		}
 	}
 
-	private JSONObject getTableJSONObject(String stringJSON, String tableName) {
-		JSONObject rawJSON = this.parseRawJSON(stringJSON);
+	private JSONObject getTableJSONObject(String stringJSON, boolean isItem) {
+		JSONObject withNaJSON = this.addNaToJSON(stringJSON, false);
 		JSONObject parsedJSON = new JSONObject();
-        switch (tableName) {
-            case TABLE_ITEM_VIEW -> {
-                parsedJSON.put("asin", rawJSON.get("asin"));
-                parsedJSON.put("title", rawJSON.get("title"));
-                parsedJSON.put("imageURL", rawJSON.get("imageURL"));
-                parsedJSON.put("categories", rawJSON.get("categories"));
-                parsedJSON.put("description", rawJSON.get("description"));
-            }
-            case TABLE_USER_REVIEWS_VIEW -> {
-                parsedJSON.put("reviewerID", rawJSON.get("reviewerID"));
-                parsedJSON.put("time", rawJSON.get("time"));
-                parsedJSON.put("asin", rawJSON.get("asin"));
-                parsedJSON.put("reviewerName", rawJSON.get("reviewerName"));
-                parsedJSON.put("rating", rawJSON.get("rating"));
-                parsedJSON.put("summary", rawJSON.get("summary"));
-                parsedJSON.put("reviewText", rawJSON.get("reviewText"));
-            }
-            case TABLE_ITEM_REVIEWS_VIEW -> {
-                parsedJSON.put("asin", rawJSON.get("asin"));
-                parsedJSON.put("time", rawJSON.get("time"));
-                parsedJSON.put("reviewerID", rawJSON.get("reviewerID"));
-                parsedJSON.put("reviewerName", rawJSON.get("reviewerName"));
-                parsedJSON.put("rating", rawJSON.get("rating"));
-                parsedJSON.put("summary", rawJSON.get("summary"));
-                parsedJSON.put("reviewText", rawJSON.get("reviewText"));
-            }
-            default -> System.out.println("ERROR: table name not found");
+        if (isItem) {
+            parsedJSON.put("asin", withNaJSON.get("asin"));
+            parsedJSON.put("title", withNaJSON.get("title"));
+            parsedJSON.put("imageURL", withNaJSON.get("imageURL"));
+            parsedJSON.put("categories", withNaJSON.get("categories"));
+            parsedJSON.put("description", withNaJSON.get("description"));
+        } else {
+            parsedJSON.put("reviewerID", withNaJSON.get("reviewerID"));
+            parsedJSON.put("time", withNaJSON.get("time"));
+            parsedJSON.put("asin", withNaJSON.get("asin"));
+            parsedJSON.put("reviewerName", withNaJSON.get("reviewerName"));
+            parsedJSON.put("rating", withNaJSON.get("rating"));
+            parsedJSON.put("summary", withNaJSON.get("summary"));
+            parsedJSON.put("reviewText", withNaJSON.get("reviewText"));
         }
 		return parsedJSON;
 	}
 
-	private JSONObject parseRawJSON(String stringJSON) {
+	private JSONObject addNaToJSON(String stringJSON, boolean isItem) {
 		JSONObject rawJSON = new JSONObject(stringJSON);
-		JSONObject parsedGenericJSON = new JSONObject();
-		// Create an array with all the below keys and name it keysArray
-		String[] keysArray = {"asin", "title", "imUrl", "categories", "description", "reviewerID", "time", "reviewerName", "rating", "summary", "reviewText"};
+		JSONObject withNaJSON = new JSONObject();
+		if (isItem) {
+			addNaToItem(rawJSON, withNaJSON);
+		} else {
+			addNaToReview(withNaJSON, rawJSON);
+		}
+		return withNaJSON;
+	}
 
-		for (String key : keysArray) {
+	private static void addNaToReview(JSONObject withNaJSON, JSONObject rawJSON) {
+		String[] reviewKeysArray = {"asin", "reviewerID", "unixReviewTime", "reviewerName", "overall", "summary", "reviewText"};
+		for (String key : reviewKeysArray) {
+			try {
+				if (key.equals("unixReviewTime")) {
+					withNaJSON.put("time", rawJSON.get(key));
+				} else if (key.equals("overall")) {
+					withNaJSON.put("rating", rawJSON.get(key));
+				} else {
+					withNaJSON.put(key, rawJSON.get(key));
+				}
+			}
+			catch (Exception e) {
+				if (key.equals("unixReviewTime")) {
+					withNaJSON.put("time", NOT_AVAILABLE_VALUE);
+				} else if (key.equals("overall")) {
+					withNaJSON.put("rating", 0);
+				} else {
+					withNaJSON.put(key, NOT_AVAILABLE_VALUE);
+				}
+			}
+		}
+	}
+
+	private static void addNaToItem(JSONObject rawJSON, JSONObject withNaJSON) {
+		String[] itemKeysArray = {"asin", "title", "imUrl", "categories", "description"};
+		for (String key : itemKeysArray) {
 			try {
 				switch (key) {
 					case "categories":
 						JSONArray outerArray = rawJSON.getJSONArray("categories");
 						JSONArray categoriesArray = outerArray.getJSONArray(0);
-						parsedGenericJSON.put("categories", categoriesArray);
+						withNaJSON.put("categories", categoriesArray);
 						break;
 					case "imUrl":
-						parsedGenericJSON.put("imageURL", rawJSON.get(key));
+						withNaJSON.put("imageURL", rawJSON.get(key));
 						break;
 					default:
-						parsedGenericJSON.put(key, rawJSON.get(key));
+						withNaJSON.put(key, rawJSON.get(key));
 				}
-			} catch (Exception e) {
+			}
+			catch (Exception e) {
 				if (key.equals("imUrl")) {
-					parsedGenericJSON.put("imageURL", NOT_AVAILABLE_VALUE);
-				} else {
-					parsedGenericJSON.put(key, NOT_AVAILABLE_VALUE);
+					withNaJSON.put("imageURL", NOT_AVAILABLE_VALUE);
+				}
+				else {
+					withNaJSON.put(key, NOT_AVAILABLE_VALUE);
 				}
 			}
 		}
-		return parsedGenericJSON;
 	}
 
 	private void insertItemView(String asin, String title, String imageURL, Set<String> categories, String description) {
@@ -418,5 +472,29 @@ public class HW2StudentAnswer implements HW2API {
 						.setSet("categories", categories, String.class)
 						.setString("description", description);
 		session.execute(insertItemBstmt);
+	}
+
+	private void insertUserReviewsView(String reviewerID, Instant time, String asin, String reviewName, int rating, String summary, String reviewText) {
+		BoundStatement insertUserReviewsBstmt = insertUserReviewsView.bind()
+						.setString("reviewerID", reviewerID)
+						.setInstant("time", time)
+						.setString("asin", asin)
+						.setString("reviewName", reviewName)
+						.setInt("rating", rating)
+						.setString("summary", summary)
+						.setString("reviewText", reviewText);
+		session.execute(insertUserReviewsBstmt);
+	}
+
+	private void insertItemReviewsView(String asin, Instant time, String reviewerID, String reviewerName, int rating, String summary, String reviewText) {
+		BoundStatement insertItemReviewsBstmt = insertItemReviewsView.bind()
+						.setString("asin", asin)
+						.setInstant("time", time)
+						.setString("reviewerID", reviewerID)
+						.setString("reviewerName", reviewerName)
+						.setInt("rating", rating)
+						.setString("summary", summary)
+						.setString("reviewText", reviewText);
+		session.execute(insertItemReviewsBstmt);
 	}
 }
