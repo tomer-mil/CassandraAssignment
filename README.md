@@ -7,4 +7,5 @@ To simplify things, you are not required to create any UI. Instead, you would ne
 some functions (`HW2API`) that would be executed by a CLI which is also provided.
 ##
 **Professor**: Dr. Rubi Boim
+
 **Course Website**: https://courses.cs.tau.ac.il/bigdata/bigdata2025/
