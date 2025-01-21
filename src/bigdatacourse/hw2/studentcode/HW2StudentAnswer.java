@@ -5,14 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
 import org.json.JSONArray;
@@ -170,24 +168,37 @@ public class HW2StudentAnswer implements HW2API {
 
 	@Override
 	public void loadItems(String pathItemsFile) throws Exception {
-		//TODO: implement this function
 		BufferedReader br = this.getBufferedReader(pathItemsFile);
-		String line = br.readLine();
+		String line;
 
 		int maxThreads = 250;
 		ExecutorService executor = Executors.newFixedThreadPool(maxThreads);
 
-		while (line != null) {
+		while ((line = br.readLine()) != null) {
+			final String currentLine = line;
 			executor.execute(new Runnable() {
 				@Override
 				public void run() {
+					JSONObject itemJSON = getTableJSONObject(currentLine, TABLE_ITEM_VIEW);
 
+					JSONArray categoriesArray = itemJSON.getJSONArray("categories");
+					Set<String> categories = new HashSet<>();
+					for (int i = 0; i < categoriesArray.length(); i++) {
+						categories.add(categoriesArray.getString(i));
+					}
+					System.out.println("Inserting:\n" + itemJSON.toString(4));
+					insertItemView(
+							itemJSON.getString("asin"),
+							itemJSON.getString("title"),
+							itemJSON.getString("imageURL"),
+							categories,
+							itemJSON.getString("description"));
 				}
+
 			});
 		}
-
-
-
+		executor.shutdown();
+		br.close();
 		System.out.println("TODO: implement this function...");
 	}
 
@@ -335,13 +346,36 @@ public class HW2StudentAnswer implements HW2API {
 	}
 
 	private JSONObject getTableJSONObject(String stringJSON, String tableName) {
-		JSONObject rawJSON = new JSONObject(stringJSON);
+		JSONObject rawJSON = this.parseRawJSON(stringJSON);
 		JSONObject parsedJSON = new JSONObject();
-		if (tableName.equals(TABLE_ITEM_VIEW)) {
-//			String asin = rawJSON.get();
-//			parsedJSON.put("asin", rawJSON.get("asin"));
-		}
-
+        switch (tableName) {
+            case TABLE_ITEM_VIEW -> {
+                parsedJSON.put("asin", rawJSON.get("asin"));
+                parsedJSON.put("title", rawJSON.get("title"));
+                parsedJSON.put("imageURL", rawJSON.get("imageURL"));
+                parsedJSON.put("categories", rawJSON.get("categories"));
+                parsedJSON.put("description", rawJSON.get("description"));
+            }
+            case TABLE_USER_REVIEWS_VIEW -> {
+                parsedJSON.put("reviewerID", rawJSON.get("reviewerID"));
+                parsedJSON.put("time", rawJSON.get("time"));
+                parsedJSON.put("asin", rawJSON.get("asin"));
+                parsedJSON.put("reviewerName", rawJSON.get("reviewerName"));
+                parsedJSON.put("rating", rawJSON.get("rating"));
+                parsedJSON.put("summary", rawJSON.get("summary"));
+                parsedJSON.put("reviewText", rawJSON.get("reviewText"));
+            }
+            case TABLE_ITEM_REVIEWS_VIEW -> {
+                parsedJSON.put("asin", rawJSON.get("asin"));
+                parsedJSON.put("time", rawJSON.get("time"));
+                parsedJSON.put("reviewerID", rawJSON.get("reviewerID"));
+                parsedJSON.put("reviewerName", rawJSON.get("reviewerName"));
+                parsedJSON.put("rating", rawJSON.get("rating"));
+                parsedJSON.put("summary", rawJSON.get("summary"));
+                parsedJSON.put("reviewText", rawJSON.get("reviewText"));
+            }
+            default -> System.out.println("ERROR: table name not found");
+        }
 		return parsedJSON;
 	}
 
@@ -349,24 +383,24 @@ public class HW2StudentAnswer implements HW2API {
 		JSONObject rawJSON = new JSONObject(stringJSON);
 		JSONObject parsedGenericJSON = new JSONObject();
 		// Create an array with all the below keys and name it keysArray
-		String[] keysArray = {"asin", "title", "imURL", "categories", "description", "reviewerID", "time", "reviewerName", "rating", "summary", "reviewText"};
+		String[] keysArray = {"asin", "title", "imUrl", "categories", "description", "reviewerID", "time", "reviewerName", "rating", "summary", "reviewText"};
 
 		for (String key : keysArray) {
-			if (rawJSON.get(key) != null) {
+			try {
 				switch (key) {
 					case "categories":
-						JSONArray categoriesArray = new JSONArray(rawJSON.getJSONArray("categories")).getJSONArray(0);
-						System.out.println("categoriesArray:\n" + categoriesArray.toString(4));
+						JSONArray outerArray = rawJSON.getJSONArray("categories");
+						JSONArray categoriesArray = outerArray.getJSONArray(0);
 						parsedGenericJSON.put("categories", categoriesArray);
 						break;
-					case "imURL":
+					case "imUrl":
 						parsedGenericJSON.put("imageURL", rawJSON.get(key));
 						break;
 					default:
 						parsedGenericJSON.put(key, rawJSON.get(key));
 				}
-			} else {
-				if (key.equals("imURL")) {
+			} catch (Exception e) {
+				if (key.equals("imUrl")) {
 					parsedGenericJSON.put("imageURL", NOT_AVAILABLE_VALUE);
 				} else {
 					parsedGenericJSON.put(key, NOT_AVAILABLE_VALUE);
@@ -374,5 +408,15 @@ public class HW2StudentAnswer implements HW2API {
 			}
 		}
 		return parsedGenericJSON;
+	}
+
+	private void insertItemView(String asin, String title, String imageURL, Set<String> categories, String description) {
+		BoundStatement insertItemBstmt = insertItemView.bind()
+						.setString("asin", asin)
+						.setString("title", title)
+						.setString("imageURL", imageURL)
+						.setSet("categories", categories, String.class)
+						.setString("description", description);
+		session.execute(insertItemBstmt);
 	}
 }
