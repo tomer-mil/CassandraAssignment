@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
@@ -27,11 +28,9 @@ public class HW2StudentAnswer implements HW2API {
 	private static final String		TABLE_ITEM_VIEW			=		"item_view";
 	private static final String		TABLE_USER_REVIEWS_VIEW	=		"user_reviews_view";
 	private static final String		TABLE_ITEM_REVIEWS_VIEW	=		"item_reviews_view";
-	private static final String 	TEST_JSON_FILES_PATH 	=		"data/test_data/";
 	private static final int	 	MAX_THREADS				=		250;
 
 	// CQL stuff
-	//TODO: add here create table and query designs
 	private static final String 		CQL_ITEM_VIEW_CREATE_TABLE =
 			"CREATE TABLE " + TABLE_ITEM_VIEW 							+
 				"("		 												+
@@ -93,8 +92,6 @@ public class HW2StudentAnswer implements HW2API {
 	private CqlSession session;
 	
 	// prepared statements
-	//TODO: add here prepared statements variables
-
 	// Item prepared statements
 	private PreparedStatement insertItemView;
 	private PreparedStatement selectItemView;
@@ -184,7 +181,6 @@ public class HW2StudentAnswer implements HW2API {
 					for (int i = 0; i < categoriesArray.length(); i++) {
 						categories.add(categoriesArray.getString(i));
 					}
-					System.out.println("Inserting:\n" + itemJSON.toString(4));
 					insertItemView(
 							itemJSON.getString("asin"),
 							itemJSON.getString("title"),
@@ -192,10 +188,10 @@ public class HW2StudentAnswer implements HW2API {
 							categories,
 							itemJSON.getString("description"));
 				}
-
 			});
 		}
 		executor.shutdown();
+		executor.awaitTermination(1, TimeUnit.HOURS);
 		br.close();
 	}
 
@@ -203,7 +199,6 @@ public class HW2StudentAnswer implements HW2API {
 	public void loadReviews(String pathReviewsFile) throws Exception {
 		BufferedReader br = getBufferedReader(pathReviewsFile);
 		String line;
-
 		ExecutorService executor = Executors.newFixedThreadPool(MAX_THREADS);
 		while ((line = br.readLine()) != null) {
 			final String currentLine = line;
@@ -211,7 +206,6 @@ public class HW2StudentAnswer implements HW2API {
 				@Override
 				public void run() {
 					JSONObject reviewItemJSON = getTableJSONObject(currentLine, false);
-
 					insertItemReviewsView(
 							reviewItemJSON.getString("asin"),
 							Instant.ofEpochSecond(reviewItemJSON.getLong("time")),
@@ -221,6 +215,7 @@ public class HW2StudentAnswer implements HW2API {
 							reviewItemJSON.getString("summary"),
 							reviewItemJSON.getString("reviewText")
 					);
+
 					insertUserReviewsView(
 							reviewItemJSON.getString("reviewerID"),
 							Instant.ofEpochSecond(reviewItemJSON.getLong("time")),
@@ -231,10 +226,11 @@ public class HW2StudentAnswer implements HW2API {
 							reviewItemJSON.getString("reviewText")
 					);
 				}
-
 			});
+
 		}
 		executor.shutdown();
+		executor.awaitTermination(1, TimeUnit.HOURS);
 		br.close();
 	}
 
@@ -254,18 +250,6 @@ public class HW2StudentAnswer implements HW2API {
 		} else {
 			item = "not exists\n";
 		}
-		// you should return the item's description based on the formatItem function.
-		// if it does not exist, return the string "not exists"
-		// example for asin B005QB09TU
-
-//		if (true) // if exists
-//			item = formatItem(
-//				"B005QB09TU",
-//				"Circa Action Method Notebook",
-//				"http://ecx.images-amazon.com/images/I/41ZxT4Opx3L._SY300_.jpg",
-//				new TreeSet<String>(Arrays.asList("Notebooks & Writing Pads", "Office & School Supplies", "Office Products", "Paper")),
-//				"Circa + Behance = Productivity. The minute-to-minute flexibility of Circa note-taking meets the organizational power of the Action Method by Behance. The result is enhanced productivity, so you'll formulate strategies and achieve objectives even more efficiently with this Circa notebook and project planner. Read Steve's blog on the Behance/Levenger partnership Customize with your logo. Corporate pricing available. Please call 800-357-9991."
-//			);
 		return item;
 	}
 	
@@ -288,31 +272,6 @@ public class HW2StudentAnswer implements HW2API {
 			);
 			reviewReprs.add(reviewRepr);
 		}
-
-		// required format - example for reviewerID A17OJCRPMYWXWV
-//		String reviewRepr1 = formatReview(
-//			Instant.ofEpochSecond(1362614400),
-//			"B005QDG2AI",
-//			"A17OJCRPMYWXWV",
-// 			"Old Flour Child",
-//			5,
-//			"excellent quality",
-//			"These cartridges are excellent .  I purchased them for the office where I work and they perform  like a dream.  They are a fraction of the price of the brand name cartridges.  I will order them again!"
-//		);
-//		reviewRepers.add(reviewRepr1);
-//
-//		String reviewRepr2 = formatReview(
-//			Instant.ofEpochSecond(1360108800),
-//			"B003I89O6W",
-//			"A17OJCRPMYWXWV",
-//			"Old Flour Child",
-//			5,
-//			"Checkbook Cover",
-//			"Purchased this for the owner of a small automotive repair business I work for.  The old one was being held together with duct tape.  When I saw this one on Amazon (where I look for almost everything first) and looked at the price, I knew this was the one.  Really nice and very sturdy."
-//		);
-//		reviewRepers.add(reviewRepr2);
-
-//		System.out.println("total reviews: " + 2);
 		return reviewReprs;
 	}
 
@@ -335,51 +294,9 @@ public class HW2StudentAnswer implements HW2API {
 			);
 			reviewReprs.add(reviewRepr);
 		}
-		
-		// required format - example for asin B005QDQXGQ
-//		ArrayList<String> reviewRepers = new ArrayList<String>();
-//		reviewRepers.add(
-//			formatReview(
-//				Instant.ofEpochSecond(1391299200),
-//				"B005QDQXGQ",
-//				"A1I5J5RUJ5JB4B",
-//				"T. Taylor \"jediwife3\"",
-//				5,
-//				"Play and Learn",
-//				"The kids had a great time doing hot potato and then having to answer a question if they got stuck with the &#34;potato&#34;. The younger kids all just sat around turnin it to read it."
-//			)
-//		);
-//
-//		reviewRepers.add(
-//			formatReview(
-//				Instant.ofEpochSecond(1390694400),
-//				"B005QDQXGQ",
-//				"\"AF2CSZ8IP8IPU\"",
-//				"Corey Valentine \"sue\"",
-//				1,
-//			 	"Not good",
-//				"This Was not worth 8 dollars would not recommend to others to buy for kids at that price do not buy"
-//			)
-//		);
-//
-//		reviewRepers.add(
-//			formatReview(
-//				Instant.ofEpochSecond(1388275200),
-//				"B005QDQXGQ",
-//				"A27W10NHSXI625",
-//				"Beth",
-//				2,
-//				"Way overpriced for a beach ball",
-//				"It was my own fault, I guess, for not thoroughly reading the description, but this is just a blow-up beach ball.  For that, I think it was very overpriced.  I thought at least I was getting one of those pre-inflated kickball-type balls that you find in the giant bins in the chain stores.  This did have a page of instructions for a few different games kids can play.  Still, I think kids know what to do when handed a ball, and there's a lot less you can do with a beach ball than a regular kickball, anyway."
-//			)
-//		);
-//
-//		System.out.println("total reviews: " + 3);
 		return reviewReprs;
 	}
 
-	
-	
 	// Formatting methods, do not change!
 	private String formatItem(String asin, String title, String imageUrl, Set<String> categories, String description) {
 		String itemDesc = "";
@@ -403,7 +320,7 @@ public class HW2StudentAnswer implements HW2API {
 		return reviewDesc;
 	}
 
-	private BufferedReader getBufferedReader(String path) throws Exception {
+	private BufferedReader getBufferedReader(String path) {
 		try {
 			return new BufferedReader(new FileReader(path));
 		} catch (FileNotFoundException e) {
@@ -443,7 +360,7 @@ public class HW2StudentAnswer implements HW2API {
 		return withNaJSON;
 	}
 
-	private static void addNaToReview(JSONObject withNaJSON, JSONObject rawJSON) {
+	private void addNaToReview(JSONObject withNaJSON, JSONObject rawJSON) {
 		String[] reviewKeysArray = {"asin", "reviewerID", "unixReviewTime", "reviewerName", "overall", "summary", "reviewText"};
 		for (String key : reviewKeysArray) {
 			try {
@@ -467,7 +384,7 @@ public class HW2StudentAnswer implements HW2API {
 		}
 	}
 
-	private static void addNaToItem(JSONObject rawJSON, JSONObject withNaJSON) {
+	private void addNaToItem(JSONObject rawJSON, JSONObject withNaJSON) {
 		String[] itemKeysArray = {"asin", "title", "imUrl", "categories", "description"};
 		for (String key : itemKeysArray) {
 			try {
