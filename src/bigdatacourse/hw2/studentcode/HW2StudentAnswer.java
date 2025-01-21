@@ -13,6 +13,8 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.BoundStatement;
 import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -241,26 +243,40 @@ public class HW2StudentAnswer implements HW2API {
 		executor.shutdown();
 		br.close();
 		System.out.println("TODO: implement this function...");
+		System.out.println("DONE!");
 	}
 
 	@Override
 	public String item(String asin) {
 		//TODO: implement this function
-		System.out.println("TODO: implement this function...");
-		
+		String item;
+		Row itemSelectResult = selectItemView(asin);
+		if (itemSelectResult != null) {
+			TreeSet<String> categories = new TreeSet<String>(itemSelectResult.getSet("categories", String.class));
+			item = formatItem(
+					itemSelectResult.getString("asin"),
+					itemSelectResult.getString("title"),
+					itemSelectResult.getString("imageURL"),
+					categories,
+					itemSelectResult.getString("description")
+			);
+		} else {
+			item = "not exists\n";
+		}
 		// you should return the item's description based on the formatItem function.
 		// if it does not exist, return the string "not exists"
 		// example for asin B005QB09TU
-		String item = "not exists";	// if not exists
-		if (true) // if exists
-			item = formatItem(
-				"B005QB09TU",
-				"Circa Action Method Notebook",
-				"http://ecx.images-amazon.com/images/I/41ZxT4Opx3L._SY300_.jpg",
-				new TreeSet<String>(Arrays.asList("Notebooks & Writing Pads", "Office & School Supplies", "Office Products", "Paper")),
-				"Circa + Behance = Productivity. The minute-to-minute flexibility of Circa note-taking meets the organizational power of the Action Method by Behance. The result is enhanced productivity, so you'll formulate strategies and achieve objectives even more efficiently with this Circa notebook and project planner. Read Steve's blog on the Behance/Levenger partnership Customize with your logo. Corporate pricing available. Please call 800-357-9991."
-			);
-		
+
+//		if (true) // if exists
+//			item = formatItem(
+//				"B005QB09TU",
+//				"Circa Action Method Notebook",
+//				"http://ecx.images-amazon.com/images/I/41ZxT4Opx3L._SY300_.jpg",
+//				new TreeSet<String>(Arrays.asList("Notebooks & Writing Pads", "Office & School Supplies", "Office Products", "Paper")),
+//				"Circa + Behance = Productivity. The minute-to-minute flexibility of Circa note-taking meets the organizational power of the Action Method by Behance. The result is enhanced productivity, so you'll formulate strategies and achieve objectives even more efficiently with this Circa notebook and project planner. Read Steve's blog on the Behance/Levenger partnership Customize with your logo. Corporate pricing available. Please call 800-357-9991."
+//			);
+		System.out.println("TODO: implement this function...");
+		System.out.println("DONE!");
 		return item;
 	}
 	
@@ -472,6 +488,12 @@ public class HW2StudentAnswer implements HW2API {
 						.setSet("categories", categories, String.class)
 						.setString("description", description);
 		session.execute(insertItemBstmt);
+	}
+
+	private Row selectItemView(String asin) {
+		BoundStatement selectItemBstmt = selectItemView.bind()
+				.setString(0, asin);
+		return session.execute(selectItemBstmt).one();
 	}
 
 	private void insertUserReviewsView(String reviewerID, Instant time, String asin, String reviewName, int rating, String summary, String reviewText) {
